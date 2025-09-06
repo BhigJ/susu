@@ -104,6 +104,25 @@ export const CONTRACT_ABI = [
 		inputs: [
 			{
 				internalType: "address",
+				name: "user",
+				type: "address",
+			},
+		],
+		name: "hasWithdrawn",
+		outputs: [
+			{
+				internalType: "bool",
+				name: "",
+				type: "bool",
+			},
+		],
+		stateMutability: "view",
+		type: "function",
+	},
+	{
+		inputs: [
+			{
+				internalType: "address",
 				name: "",
 				type: "address",
 			},
@@ -137,22 +156,3 @@ export const CONTRACT_ABI = [
 		type: "function",
 	},
 ] as const;
-
-export interface LockInfo {
-	deadline: bigint;
-	balance: bigint;
-	withdrawn: boolean;
-}
-
-export interface ContractEvents {
-	Deposited: {
-		user: string;
-		amount: bigint;
-		newBalance: bigint;
-		deadline: bigint;
-	};
-	Withdrawn: {
-		user: string;
-		amount: bigint;
-	};
-}

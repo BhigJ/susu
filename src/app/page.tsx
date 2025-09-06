@@ -7,10 +7,10 @@ import DepositForm from '@/components/DepositForm';
 import WithdrawForm from '@/components/WithdrawForm';
 
 export default function Home() {
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleTransactionSuccess = () => {
-    setRefreshKey(prev => prev + 1);
+    // Refresh the entire page
+    window.location.reload();
   };
 
   return (
@@ -41,7 +41,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Balance and Withdraw */}
           <div className="space-y-6">
-            <UserBalance key={refreshKey} />
+            <UserBalance />
             <WithdrawForm onWithdrawSuccess={handleTransactionSuccess} />
           </div>
 

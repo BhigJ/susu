@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUserAccount, parseEtherValue } from '@/lib/wagmi-utils';
-import { CONTRACT_ADDRESS } from '@/lib/web3';
 import { CONTRACT_ABI } from '@/lib/contract';
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, useChainId, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { getContractAddress, parseEtherValue } from '@/lib/util';
 
 interface DepositFormProps {
   onDepositSuccess: () => void;
@@ -13,42 +12,36 @@ interface DepositFormProps {
 export default function DepositForm({ onDepositSuccess }: DepositFormProps) {
   const [amount, setAmount] = useState('');
   const [period, setPeriod] = useState('1'); // minutes
-  const [error, setError] = useState('');
   
-  const { isConnected } = useUserAccount();
-  const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const { writeContract, data: hash, isPending, isError: isWriteError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess, error: confirmError, isError: isConfirmError } = useWaitForTransactionReceipt({
     hash,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const contractAddress = getContractAddress(chainId)
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !period || !isConnected) return;
 
-    setError('');
-
-    try {
-      const amountWei = parseEtherValue(amount);
+     const amountWei = parseEtherValue(amount);
       const periodSeconds = BigInt(parseInt(period) * 60); // Convert minutes to seconds
 
       writeContract({
-        address: CONTRACT_ADDRESS as `0x${string}`,
+        address: contractAddress as `0x${string}`,
         abi: CONTRACT_ABI,
         functionName: 'deposit',
         args: [periodSeconds],
         value: amountWei,
       });
-    } catch (err: any) {
-      console.error('Deposit failed:', err);
-      setError(err.message || 'Deposit failed');
-    }
   };
 
   // Handle successful transaction
   useEffect(() => {
     if (isSuccess) {
-      setAmount('');
-      setPeriod('1');
+      console.log('Deposit transaction successful!');
       onDepositSuccess();
     }
   }, [isSuccess, onDepositSuccess]);
@@ -68,9 +61,9 @@ export default function DepositForm({ onDepositSuccess }: DepositFormProps) {
             id="amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            step="0.001"
+            step="0.0000001"
             min="0"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="0.0"
             required
           />
@@ -84,7 +77,7 @@ export default function DepositForm({ onDepositSuccess }: DepositFormProps) {
             id="period"
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="1">1 minute</option>
             <option value="3">3 minutes</option>
@@ -99,9 +92,9 @@ export default function DepositForm({ onDepositSuccess }: DepositFormProps) {
           </div>
         )}
 
-        {(error || writeError) && (
+        {(isWriteError || isConfirmError) && (
           <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
-            {error || writeError?.message || 'Deposit failed'}
+            {confirmError?.message || 'Deposit failed'}
           </div>
         )}
 

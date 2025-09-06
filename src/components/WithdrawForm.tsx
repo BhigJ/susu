@@ -1,44 +1,40 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {  useUserAccount } from '@/lib/wagmi-utils';
-import { CONTRACT_ADDRESS } from '@/lib/web3';
+import { useEffect } from 'react';
 import { CONTRACT_ABI } from '@/lib/contract';
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, useChainId, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { getContractAddress } from '@/lib/util';
 
 interface WithdrawFormProps {
   onWithdrawSuccess: () => void;
 }
 
 export default function WithdrawForm({ onWithdrawSuccess }: WithdrawFormProps) {
-  const [error, setError] = useState('');
   
-  const { isConnected } = useUserAccount();
-  const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+
+  const contractAddress = getContractAddress(chainId)
+
+  const { writeContract, data: hash, isPending, isError: isWriteError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess, isError: isConfirmError, error: confirmError } = useWaitForTransactionReceipt({
     hash,
   });
 
   const handleWithdraw = async () => {
     if (!isConnected) return;
 
-    setError('');
-
-    try {
-      writeContract({
-        address: CONTRACT_ADDRESS as `0x${string}`,
+    writeContract({
+        address: contractAddress as `0x${string}`,
         abi: CONTRACT_ABI,
         functionName: 'withdraw',
       });
-    } catch (err: any) {
-      console.error('Withdraw failed:', err);
-      setError(err.message || 'Withdraw failed');
-    }
   };
 
   // Handle successful transaction
   useEffect(() => {
     if (isSuccess) {
+      console.log('Withdraw transaction successful!');
       onWithdrawSuccess();
     }
   }, [isSuccess, onWithdrawSuccess]);
@@ -58,13 +54,14 @@ export default function WithdrawForm({ onWithdrawSuccess }: WithdrawFormProps) {
         </div>
       )}
 
-      {(error || writeError) && (
+      {(isWriteError || isConfirmError) && (
         <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md mb-4">
-          {error || writeError?.message || 'Withdraw failed'}
+          {confirmError?.message || 'Withdraw failed'}
         </div>
       )}
 
       <button
+      type='button'
         onClick={handleWithdraw}
         disabled={isLoading || !isConnected}
         className="w-full py-2 px-4 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
